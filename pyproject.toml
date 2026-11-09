@@ -1,0 +1,114 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ares-enterprise"
+version = "0.1.0"
+description = "ARES Enterprise — modular, governed cybersecurity engineering and intelligence platform."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { file = "LICENSE" }
+authors = [{ name = "Diego Emiliano Perrusquía Hurtado" }]
+keywords = ["cybersecurity", "active-directory", "edr", "security-engineering", "platform"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+]
+
+# Core runtime kept intentionally small. Heavy / domain-specific tooling lives in optional extras.
+dependencies = [
+    "pydantic>=2.11",
+    "pydantic-settings>=2.5",
+    "structlog>=24.4",
+    "typer>=0.15",
+    "rich>=13.9",
+    "httpx>=0.28",
+]
+
+[project.optional-dependencies]
+# Persistence layer (Phase 3+).
+storage = [
+    "sqlalchemy>=2.0",
+    "alembic>=1.14",
+    "psycopg[binary]>=3.2",
+    "pgvector>=0.3",
+]
+# LLM providers (Phase 4+). Ollama is reached through httpx, no SDK required.
+ai = [
+    "anthropic>=0.40",
+    "openai>=1.60",
+]
+# HTTP API surface, added when the REST layer is implemented.
+api = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+]
+# Knowledge ingestion (Phase 5+).
+knowledge = [
+    "pypdf>=5.1",
+    "trafilatura>=2.0",
+    "markdown-it-py>=3.0",
+    "feedparser>=6.0",
+    "GitPython>=3.1",
+]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "pytest-asyncio>=0.25",
+    "ruff>=0.8",
+    "mypy>=1.14",
+]
+
+[project.scripts]
+ares = "ares.cli.main:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ares"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+# Never touch documentation or spec files; ruff operates on Python sources only.
+extend-exclude = ["*.md"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "C4", "PTH", "RUF"]
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+mypy_path = "src"
+packages = ["ares"]
+warn_unused_configs = true
+warn_return_any = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra --strict-markers"
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "integration: tests that exercise external systems (opt-in, may need services).",
+    "security: tests asserting security / governance boundaries.",
+]
+
+[tool.coverage.run]
+source = ["ares"]
+branch = true
